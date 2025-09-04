@@ -1,0 +1,87 @@
+import random
+import math
+
+# ---- Distance Calculation ----
+def distance(city1, city2):
+    return math.sqrt((city1[0] - city2[0])**2 + (city1[1] - city2[1])**2)
+
+def route_length(route, cities):
+    return sum(distance(cities[route[i]], cities[route[(i+1) % len(route)]]) for i in range(len(route)))
+
+# ---- GA Operators ----
+def create_route(num_cities):
+    route = list(range(num_cities))
+    random.shuffle(route)
+    return route
+
+def crossover(parent1, parent2):
+    start, end = sorted(random.sample(range(len(parent1)), 2))
+    child = [-1] * len(parent1)
+    child[start:end] = parent1[start:end]
+    ptr = 0
+    for city in parent2:
+        if city not in child:
+            while child[ptr] != -1:
+                ptr += 1
+            child[ptr] = city
+    return child
+
+def mutate(route, mutation_rate=0.01):
+    for i in range(len(route)):
+        if random.random() < mutation_rate:
+            j = random.randint(0, len(route)-1)
+            route[i], route[j] = route[j], route[i]
+    return route
+
+def select(population, fitnesses):
+    return random.choices(population, weights=fitnesses, k=1)[0]
+
+# ---- Genetic Algorithm ----
+def genetic_algorithm(cities, pop_size=100, generations=500, mutation_rate=0.01):
+    num_cities = len(cities)
+    population = [create_route(num_cities) for _ in range(pop_size)]
+   
+    for gen in range(generations):
+        fitnesses = [1 / route_length(route, cities) for route in population]
+        new_population = []
+        for _ in range(pop_size):
+            parent1 = select(population, fitnesses)
+            parent2 = select(population, fitnesses)
+            child = crossover(parent1, parent2)
+            child = mutate(child, mutation_rate)
+            new_population.append(child)
+        population = new_population
+
+        # Print best distance every 50 generations
+        if gen % 50 == 0:
+            best_route = min(population, key=lambda r: route_length(r, cities))
+            print(f"Gen {gen}: Best Distance = {route_length(best_route, cities):.2f}")
+   
+    best_route = min(population, key=lambda r: route_length(r, cities))
+    return best_route, route_length(best_route, cities)
+
+# ---- Example Run ----
+if __name__ == "__main__":
+    # 10 cities with random coordinates
+    cities = [(random.randint(0, 100), random.randint(0, 100)) for _ in range(10)]
+    best_route, best_distance = genetic_algorithm(cities, pop_size=100, generations=500)
+    print("\nBest Route:", best_route)
+    print("Best Distance:", best_distance)
+
+
+
+OUTPUT
+
+Gen 0: Best Distance = 306.04
+Gen 50: Best Distance = 300.50
+Gen 100: Best Distance = 339.37
+Gen 150: Best Distance = 347.17
+Gen 200: Best Distance = 282.24
+Gen 250: Best Distance = 338.08
+Gen 300: Best Distance = 352.28
+Gen 350: Best Distance = 340.90
+Gen 400: Best Distance = 328.52
+Gen 450: Best Distance = 345.53
+
+Best Route: [9, 7, 2, 6, 1, 4, 0, 5, 8, 3]
+Best Distance: 313.62464909929946
